@@ -233,21 +233,24 @@ fn search(clauses: Vec<Clause>) -> Option<State> {
         propagated_vars: vec![],
     };
 
+    let variables = State::get_vars(clauses.clone());
     let mut queue: BinaryHeap<State> = BinaryHeap::new();
 
     queue.push(state);
 
     while let Some(mut state) = queue.pop() {
-        if state.is_final() {
-            return Some(state);
-        }
-
         if let Some(clause) = state.get_conflict(clauses.clone()) {
             state.steps.push(Step::Conflict(clause));
             let new_state = state.backtrack();
-            queue.push(new_state);
+            if new_state.is_final() {
+                return Some(new_state);
+            } else {
+                queue.push(new_state);
+            }
+        } else if state.vars.len() == variables.len() {
+            state.steps.push(Step::SAT);
+            return Some(state);
         } else {
-            //todo!("Check for sat");
             for new_state in state.propagate(clauses.clone()) {
                 queue.push(new_state)
             }
